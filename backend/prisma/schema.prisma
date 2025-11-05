@@ -1,0 +1,115 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+enum EmploymentType {
+  FULLTIME
+  CONTRACT
+  INTERNSHIP
+  FREELANCE
+  PART_TIME
+}
+
+enum WorkMode {
+  ONSITE
+  REMOTE
+  HYBRID
+}
+
+enum ApplicationStatus {
+  APPLIED
+  ADMIN_SCREENING
+  DOCS_COMPLETION
+  TEST
+  INTERVIEW_HR
+  INTERVIEW_TECH
+  INTERVIEW_USER
+  INTERVIEW_FINAL
+  MCU
+  BG_CHECK
+  OFFER
+  HIRED
+  REJECTED
+  WITHDRAWN
+}
+
+model User {
+  id              String        @id @default(uuid()) @db.VarChar(255)
+  name            String        @db.VarChar(255)
+  username        String        @unique @db.VarChar(255)
+  email           String        @unique @db.VarChar(255)
+  passwordHash    String        @unique @map("password_hash") @db.VarChar(255)
+  googleId        String?       @map("google_id") @db.VarChar(255)
+  phone           String?       @db.VarChar(255)
+  birthDate       DateTime?     @map("birth_date") @db.Date
+  intro           String?       @db.MediumText
+  gender          Gender?
+  role            UserRole
+  resume          String?       @db.VarChar(255)
+  avatar          String?       @db.VarChar(255)
+  emailVerifiedAt DateTime?     @map("email_verified_at") @db.Timestamp(6)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamp(6)
+  deletedAt       DateTime?     @map("deleted_at") @db.Timestamp(6)
+  bannedAt        DateTime?     @map("banned_at") @db.Timestamp(6)
+
+  applications    Application[]
+
+  @@map("users")
+}
+
+model Application {
+  id                 String            @id @default(uuid()) @db.VarChar(255)
+  userId             String            @map("user_id") @db.VarChar(255)
+  companyName        String            @map("company_name") @db.VarChar(255)
+  companyWebsite     String?           @map("company_website") @db.MediumText
+  location           String?           @db.VarChar(255)
+  position           String            @db.VarChar(255)
+  source             String?           @db.VarChar(255)
+  jobLink            String?           @map("job_link") @db.MediumText
+  employmentType     EmploymentType    @map("employment_type")
+  workMode           WorkMode          @map("work_mode")
+  status             ApplicationStatus
+  appliedDate        DateTime          @map("applied_date") @db.Date
+  duration           Int?
+  salaryMin          BigInt?           @map("salary_min")
+  salaryMax          BigInt?           @map("salary_max")
+  currency           String?           @default("IDR") @db.VarChar(255)
+  contactPerson      String?           @map("contact_person") @db.VarChar(255)
+  contactPersonEmail String?           @map("contact_person_email") @db.VarChar(255)
+  contactPersonPhone String?           @map("contact_person_phone") @db.VarChar(255)
+  nextAction         String?           @map("next_action") @db.VarChar(255)
+  nextActionDue      DateTime?         @map("next_action_due") @db.Date
+  notes              String?           @db.MediumText
+  deadline           DateTime?         @db.Date
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt          DateTime          @updatedAt @map("updated_at") @db.Timestamp(6)
+  deletedAt          DateTime?         @map("deleted_at") @db.Timestamp(6)
+  order              Int               @default(0) @map("order") @db.TinyInt
+
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("applications")
+}
