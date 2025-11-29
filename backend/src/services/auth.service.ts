@@ -16,27 +16,15 @@ import {
 import { ResponseError } from "../utils/response-error.util";
 import { validate } from "../utils/validate.util";
 import { AuthValidation } from "../validators/auth.validation";
-import { createRateLimiter } from "../utils/rate-limiter.util";
 import { enqueueEmail } from "../queues/email.queue";
 import { OAuth2Client, TokenPayload } from "google-auth-library";
-import { Request } from "express";
 
-type SafeUser = Omit<User, "password">;
+export type SafeUser = Omit<User, "password">;
 
 const toSafeUser = (user: User): SafeUser => {
   const { password: _password, ...safeUser } = user;
   return safeUser;
 };
-
-const loginRateLimiter = createRateLimiter({
-  windowMs: 60_000,
-  maxRequests: 3,
-});
-
-const passwordResetRequestLimiter = createRateLimiter({
-  windowMs: 15 * 60 * 1000,
-  maxRequests: 3,
-});
 
 const googleOAuthClient = new OAuth2Client(
   env.googleClientId,
@@ -84,17 +72,6 @@ export class AuthService {
 
   static async login(request: LoginRequest): Promise<LoginResult> {
     const requestData = validate(AuthValidation.LOGIN, request);
-    const rateKey = requestData.identifier.toLowerCase();
-    const rateState = loginRateLimiter(rateKey);
-    const waitSeconds = Math.ceil(rateState.resetInMs / 1000);
-
-    if (!rateState.allowed) {
-      throw new ResponseError(
-        429,
-        `Too many requests, try again in ${waitSeconds} seconds`
-      );
-    }
-
     const user = await prisma.user.findFirst({
       where: {
         OR: [
@@ -339,15 +316,6 @@ export class AuthService {
   ): Promise<void> {
     const requestData = validate(AuthValidation.FORGOT_PASSWORD, request);
     const email = requestData.email.toLowerCase();
-    const rateState = passwordResetRequestLimiter(email);
-    const waitSeconds = Math.ceil(rateState.resetInMs / 1000);
-
-    if (!rateState.allowed) {
-      throw new ResponseError(
-        429,
-        `Too many password reset attempts, try again in ${waitSeconds} seconds`
-      );
-    }
 
     const user = await prisma.user.findUnique({
       where: { email },

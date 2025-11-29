@@ -3,6 +3,7 @@ import express from "express";
 import path from "path";
 import { docsMiddleware, renderDocs } from "./controllers/docs.controller";
 import requestLogger from "./middleware/logger.middleware";
+import { globalRateLimiter } from "./middleware/rate-limit.middleware";
 import routes from "./routes/api.routes";
 import {
   errorHandler,
@@ -13,6 +14,7 @@ import "./queues/email.queue";
 const app = express();
 
 app.use(requestLogger);
+app.use(globalRateLimiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
