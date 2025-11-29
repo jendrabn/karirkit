@@ -6,6 +6,7 @@ import {
   loginRateLimiter,
   passwordResetRateLimiter,
 } from "../middleware/rate-limit.middleware";
+import { ApplicationController } from "../controllers/application.controller";
 
 const router = Router();
 
@@ -28,6 +29,22 @@ router.put(
   "/auth/change-password",
   authMiddleware,
   AuthController.changePassword
+);
+
+// Applications API
+router.get("/applications", authMiddleware, ApplicationController.list);
+router.post("/applications", authMiddleware, ApplicationController.create);
+router.get("/applications/:id", authMiddleware, ApplicationController.get);
+router.put("/applications/:id", authMiddleware, ApplicationController.update);
+router.delete(
+  "/applications/:id",
+  authMiddleware,
+  ApplicationController.delete
+);
+router.post(
+  "/applications/:id/duplicate",
+  authMiddleware,
+  ApplicationController.duplicate
 );
 
 export default router;

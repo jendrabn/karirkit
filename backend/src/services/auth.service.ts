@@ -15,7 +15,7 @@ import {
 } from "../types/api-schemas";
 import { ResponseError } from "../utils/response-error.util";
 import { validate } from "../utils/validate.util";
-import { AuthValidation } from "../validators/auth.validation";
+import { AuthValidation } from "../validations/auth.validation";
 import { enqueueEmail } from "../queues/email.queue";
 import { OAuth2Client, TokenPayload } from "google-auth-library";
 
