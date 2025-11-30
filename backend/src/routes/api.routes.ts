@@ -7,6 +7,7 @@ import {
   passwordResetRateLimiter,
 } from "../middleware/rate-limit.middleware";
 import { ApplicationController } from "../controllers/application.controller";
+import { ApplicationLetterController } from "../controllers/application-letter.controller";
 
 const router = Router();
 
@@ -45,6 +46,43 @@ router.post(
   "/applications/:id/duplicate",
   authMiddleware,
   ApplicationController.duplicate
+);
+
+// Application Letters API
+router.get(
+  "/application-letters",
+  authMiddleware,
+  ApplicationLetterController.list
+);
+router.post(
+  "/application-letters",
+  authMiddleware,
+  ApplicationLetterController.create
+);
+router.get(
+  "/application-letters/:id",
+  authMiddleware,
+  ApplicationLetterController.get
+);
+router.put(
+  "/application-letters/:id",
+  authMiddleware,
+  ApplicationLetterController.update
+);
+router.delete(
+  "/application-letters/:id",
+  authMiddleware,
+  ApplicationLetterController.delete
+);
+router.post(
+  "/application-letters/:id/duplicate",
+  authMiddleware,
+  ApplicationLetterController.duplicate
+);
+router.get(
+  "/application-letters/:id/download",
+  authMiddleware,
+  ApplicationLetterController.download
 );
 
 export default router;
