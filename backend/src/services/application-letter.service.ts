@@ -4,8 +4,7 @@ import type {
 } from "../../generated/prisma/client";
 import path from "path";
 import fs from "fs/promises";
-import Docxtemplater from "docxtemplater";
-import PizZip from "pizzip";
+import createReport from "docx-templates";
 import type {
   ApplicationLetter as ApplicationLetterResponse,
   Pagination,
@@ -224,10 +223,9 @@ export class ApplicationLetterService {
     id: string
   ): Promise<GeneratedDocument> {
     const letter = await ApplicationLetterService.findOwnedLetter(userId, id);
-    const docxBuffer = await ApplicationLetterService.renderDocx(letter);
-
+    const buffer = await ApplicationLetterService.renderDocx(letter);
     return {
-      buffer: docxBuffer,
+      buffer,
       mimeType:
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       fileName: `${ApplicationLetterService.buildFileName(letter)}.docx`,
@@ -289,20 +287,16 @@ export class ApplicationLetterService {
       "template_001.docx"
     );
     const templateBinary = await fs.readFile(templatePath);
-    const zip = new PizZip(templateBinary);
-    const doc = new Docxtemplater(zip, {
-      paragraphLoop: true,
-      linebreaks: true,
+
+    const rendered = await createReport({
+      template: templateBinary,
+      data: ApplicationLetterService.buildTemplateContext(letter),
+      cmdDelimiter: ["{{", "}}"],
     });
 
-    doc.render(ApplicationLetterService.buildTemplateContext(letter));
-
-    const uint8Array = doc.getZip().generate({
-      type: "uint8array",
-      compression: "DEFLATE",
-    }) as Uint8Array;
-
-    return Buffer.from(uint8Array);
+    return Buffer.isBuffer(rendered)
+      ? rendered
+      : Buffer.from(rendered as Uint8Array);
   }
 
   private static buildTemplateContext(
@@ -338,15 +332,17 @@ export class ApplicationLetterService {
   }
 
   private static buildFileName(letter: PrismaApplicationLetter): string {
-    const base = `${letter.name ?? "application"}-${
-      letter.companyName ?? "letter"
-    }`;
-    const normalized = base
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 60);
-    return normalized || "application-letter";
+    const raw = `${letter.name ?? "Pelamar"} - ${
+      letter.subject ?? "Posisi"
+    } - ${letter.companyName ?? "Perusahaan"}`;
+
+    const sanitized = raw
+      .replace(/[<>:"/\\|?*]+/g, "")
+      .replace(/[\s-]+/g, "_")
+      .trim()
+      .slice(0, 120);
+
+    return sanitized || "Lamaran";
   }
 
   private static toTitleCase(value: string): string {

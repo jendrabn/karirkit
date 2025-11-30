@@ -75,12 +75,6 @@ export class ApplicationLetterController {
 
   static async download(req: Request, res: Response, next: NextFunction) {
     try {
-      const formatParam = String(req.query.format ?? "docx").toLowerCase();
-      if (formatParam !== "docx") {
-        res.status(400).json({ message: "format not valid" });
-        return;
-      }
-
       const document = await ApplicationLetterService.generateDocx(
         req.user!.id,
         req.params.id
@@ -89,7 +83,7 @@ export class ApplicationLetterController {
       res.setHeader("Content-Type", document.mimeType);
       res.setHeader(
         "Content-Disposition",
-        `attachment; filename="${document.fileName}"`
+        ApplicationLetterController.buildContentDisposition(document.fileName)
       );
       res.send(document.buffer);
     } catch (error) {
@@ -102,5 +96,20 @@ export class ApplicationLetterController {
     } catch (error) {
       next(error);
     }
+  }
+
+  private static buildContentDisposition(fileName: string): string {
+    const fallback = fileName
+      .replace(/[\r\n]+/g, " ")
+      .replace(/["\\]/g, "")
+      .trim();
+    const asciiSafe = fallback
+      .replace(/[^\x20-\x7E]+/g, "")
+      .replace(/[\s-]+/g, "_")
+      .trim();
+    const safeName = asciiSafe || "application-letter";
+    const encoded = encodeURIComponent(fileName);
+
+    return `attachment; filename="${safeName}"; filename*=UTF-8''${encoded}`;
   }
 }
