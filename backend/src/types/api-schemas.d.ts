@@ -172,7 +172,7 @@ export interface ApplicationLetter {
   body_paragraph?: string;
   attachments?: string;
   closing_paragraph?: string;
-  signature?: string;
+  signature?: string | null;
   language?: "en" | "id";
   created_at?: string;
   updated_at?: string;
@@ -198,7 +198,7 @@ export interface ApplicationLetterPayload {
   body_paragraph: string;
   attachments: string;
   closing_paragraph: string;
-  signature: string;
+  signature?: string | null;
   language: "en" | "id";
 }
 

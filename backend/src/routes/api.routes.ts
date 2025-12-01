@@ -8,6 +8,7 @@ import {
 } from "../middleware/rate-limit.middleware";
 import { ApplicationController } from "../controllers/application.controller";
 import { ApplicationLetterController } from "../controllers/application-letter.controller";
+import { handleSignatureUpload } from "../middleware/upload.middleware";
 
 const router = Router();
 
@@ -58,6 +59,12 @@ router.post(
   "/application-letters",
   authMiddleware,
   ApplicationLetterController.create
+);
+router.post(
+  "/application-letters/signature",
+  authMiddleware,
+  handleSignatureUpload,
+  ApplicationLetterController.uploadSignature
 );
 router.get(
   "/application-letters/:id",

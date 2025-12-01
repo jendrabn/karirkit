@@ -30,7 +30,7 @@ const payloadSchema = z.object({
   body_paragraph: stringField(5000),
   attachments: stringField(2000),
   closing_paragraph: stringField(2000),
-  signature: stringField(255),
+  signature: z.union([stringField(255), z.null()]).optional(),
   language: z.nativeEnum(Language),
 });
 

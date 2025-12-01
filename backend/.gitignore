@@ -63,3 +63,5 @@ typings/
 /generated/prisma
 
 dist/
+
+public/uploads

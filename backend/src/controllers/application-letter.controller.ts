@@ -39,6 +39,22 @@ export class ApplicationLetterController {
     }
   }
 
+  static async uploadSignature(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const result = await ApplicationLetterService.uploadSignature(
+        req.user!.id,
+        req.file
+      );
+      sendSuccess(res, result, 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async update(req: Request, res: Response, next: NextFunction) {
     try {
       const letter = await ApplicationLetterService.update(

@@ -2,6 +2,7 @@ import type {
   ApplicationLetter as PrismaApplicationLetter,
   Prisma,
 } from "../../generated/prisma/client";
+import type { Express } from "express";
 import path from "path";
 import fs from "fs/promises";
 import createReport from "docx-templates";
@@ -34,6 +35,13 @@ type GeneratedDocument = {
   fileName: string;
 };
 
+type SignatureImageResult = {
+  width: number;
+  height: number;
+  data: Buffer;
+  extension: ".png" | ".jpg";
+};
+
 const sortFieldMap = {
   created_at: "createdAt",
   updated_at: "updatedAt",
@@ -44,6 +52,14 @@ const sortFieldMap = {
   string,
   keyof Prisma.ApplicationLetterOrderByWithRelationInput
 >;
+
+const MAX_SIGNATURE_HEIGHT_CM = 2;
+const SIGNATURE_UPLOAD_DIR = path.join(
+  process.cwd(),
+  "public",
+  "uploads",
+  "signatures"
+);
 
 export class ApplicationLetterService {
   static async list(
@@ -141,6 +157,29 @@ export class ApplicationLetterService {
     return ApplicationLetterService.toResponse(letter);
   }
 
+  static async uploadSignature(
+    userId: string,
+    file?: Express.Multer.File
+  ): Promise<{ path: string }> {
+    if (!file) {
+      throw new ResponseError(400, "Signature image is required");
+    }
+
+    const extension = ApplicationLetterService.getSignatureExtension(
+      file.mimetype
+    );
+    await fs.mkdir(SIGNATURE_UPLOAD_DIR, { recursive: true });
+
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const fileName = `${uniqueSuffix}.${extension}`;
+    const filePath = path.join(SIGNATURE_UPLOAD_DIR, fileName);
+    await fs.writeFile(filePath, file.buffer);
+
+    const publicPath = path.posix.join("/uploads/signatures", fileName);
+
+    return { path: publicPath };
+  }
+
   static async get(
     userId: string,
     id: string
@@ -154,12 +193,14 @@ export class ApplicationLetterService {
     id: string,
     request: unknown
   ): Promise<ApplicationLetterResponse> {
-    await ApplicationLetterService.findOwnedLetter(userId, id);
+    const existing = await ApplicationLetterService.findOwnedLetter(userId, id);
     const payload: ApplicationLetterPayloadInput = validate(
       ApplicationLetterValidation.PAYLOAD,
       request
     );
-    const data = ApplicationLetterService.mapPayloadToData(payload);
+    const data = ApplicationLetterService.mapPayloadToData(payload, {
+      signatureFallback: existing.signature,
+    });
 
     const letter = await prisma.applicationLetter.update({
       where: { id },
@@ -251,7 +292,8 @@ export class ApplicationLetterService {
   }
 
   private static mapPayloadToData(
-    payload: ApplicationLetterPayloadInput
+    payload: ApplicationLetterPayloadInput,
+    options?: { signatureFallback?: string | null }
   ): ApplicationLetterMutableFields {
     return {
       name: payload.name,
@@ -273,7 +315,10 @@ export class ApplicationLetterService {
       bodyParagraph: payload.body_paragraph,
       attachments: payload.attachments,
       closingParagraph: payload.closing_paragraph,
-      signature: payload.signature,
+      signature:
+        payload.signature === undefined
+          ? options?.signatureFallback ?? ""
+          : payload.signature ?? "",
       language: payload.language,
     };
   }
@@ -287,11 +332,14 @@ export class ApplicationLetterService {
       "template_001.docx"
     );
     const templateBinary = await fs.readFile(templatePath);
+    const additionalJsContext =
+      ApplicationLetterService.buildAdditionalJsContext();
 
     const rendered = await createReport({
       template: templateBinary,
       data: ApplicationLetterService.buildTemplateContext(letter),
       cmdDelimiter: ["{{", "}}"],
+      additionalJsContext,
     });
 
     return Buffer.isBuffer(rendered)
@@ -302,6 +350,7 @@ export class ApplicationLetterService {
   private static buildTemplateContext(
     letter: PrismaApplicationLetter
   ): Record<string, unknown> {
+    const signaturePath = letter.signature ?? "";
     return {
       applicant_city: letter.applicantCity ?? "",
       application_date: letter.applicationDate ?? "",
@@ -327,7 +376,9 @@ export class ApplicationLetterService {
       phone: letter.phone ?? "",
       email: letter.email ?? "",
       address: letter.address ?? "",
-      signature: letter.signature ?? letter.name ?? "",
+      signature: signaturePath || letter.name || "",
+      signature_path: signaturePath,
+      signature_fallback: "\n\n",
     };
   }
 
@@ -364,6 +415,181 @@ export class ApplicationLetterService {
       .filter((item) => item.length > 0);
   }
 
+  private static buildAdditionalJsContext() {
+    return {
+      signatureImage: async (signaturePath?: string | null) =>
+        ApplicationLetterService.createSignatureImage(signaturePath),
+    };
+  }
+
+  private static async createSignatureImage(
+    signaturePath?: string | null
+  ): Promise<SignatureImageResult | null> {
+    const resolvedPath =
+      ApplicationLetterService.resolveSignatureFilePath(signaturePath);
+    if (!resolvedPath) {
+      return null;
+    }
+
+    const extension =
+      ApplicationLetterService.getSignatureFileExtension(resolvedPath);
+    if (!extension) {
+      return null;
+    }
+
+    try {
+      const buffer = await fs.readFile(resolvedPath);
+      const dimensions = ApplicationLetterService.extractImageDimensions(
+        buffer,
+        extension
+      );
+      const aspectRatio =
+        dimensions && dimensions.height > 0
+          ? dimensions.width / dimensions.height
+          : 1;
+      const width = Number(
+        (Math.max(aspectRatio, 0.1) * MAX_SIGNATURE_HEIGHT_CM).toFixed(2)
+      );
+
+      return {
+        width,
+        height: MAX_SIGNATURE_HEIGHT_CM,
+        data: buffer,
+        extension,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private static resolveSignatureFilePath(
+    signaturePath?: string | null
+  ): string | null {
+    if (!signaturePath) {
+      return null;
+    }
+
+    const trimmed = signaturePath.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const normalized = trimmed.replace(/\\/g, "/").replace(/^\//, "");
+    if (!normalized.toLowerCase().startsWith("uploads/signatures/")) {
+      return null;
+    }
+
+    const relativePath = normalized.slice("uploads/signatures/".length);
+    if (!relativePath) {
+      return null;
+    }
+
+    const safeRelative = path.normalize(relativePath);
+    if (safeRelative.startsWith("..") || path.isAbsolute(safeRelative)) {
+      return null;
+    }
+
+    return path.join(SIGNATURE_UPLOAD_DIR, safeRelative);
+  }
+
+  private static getSignatureFileExtension(
+    filePath: string
+  ): SignatureImageResult["extension"] | null {
+    const ext = path.extname(filePath).toLowerCase();
+    if (ext === ".png") {
+      return ".png";
+    }
+
+    if (ext === ".jpg" || ext === ".jpeg") {
+      return ".jpg";
+    }
+
+    return null;
+  }
+
+  private static extractImageDimensions(
+    buffer: Buffer,
+    extension: SignatureImageResult["extension"]
+  ): { width: number; height: number } | null {
+    if (extension === ".png") {
+      return ApplicationLetterService.extractPngDimensions(buffer);
+    }
+
+    return ApplicationLetterService.extractJpegDimensions(buffer);
+  }
+
+  private static extractPngDimensions(
+    buffer: Buffer
+  ): { width: number; height: number } | null {
+    if (buffer.length < 24) {
+      return null;
+    }
+
+    const pngSignature = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ]);
+    if (!buffer.subarray(0, 8).equals(pngSignature)) {
+      return null;
+    }
+
+    const width = buffer.readUInt32BE(16);
+    const height = buffer.readUInt32BE(20);
+    return { width, height };
+  }
+
+  private static extractJpegDimensions(
+    buffer: Buffer
+  ): { width: number; height: number } | null {
+    if (buffer.length < 4 || buffer[0] !== 0xff || buffer[1] !== 0xd8) {
+      return null;
+    }
+
+    let offset = 2;
+    while (offset < buffer.length) {
+      if (buffer[offset] !== 0xff) {
+        offset += 1;
+        continue;
+      }
+      const marker = buffer[offset + 1];
+      offset += 2;
+
+      if (marker === 0xd9 || marker === 0xda) {
+        break;
+      }
+
+      if (offset + 1 >= buffer.length) {
+        break;
+      }
+
+      const segmentLength = buffer.readUInt16BE(offset);
+      if (segmentLength < 2 || offset + segmentLength > buffer.length) {
+        break;
+      }
+
+      if (ApplicationLetterService.isJpegSofMarker(marker)) {
+        if (offset + 5 >= buffer.length) {
+          break;
+        }
+        const height = buffer.readUInt16BE(offset + 3);
+        const width = buffer.readUInt16BE(offset + 5);
+        return { width, height };
+      }
+
+      offset += segmentLength;
+    }
+
+    return null;
+  }
+
+  private static isJpegSofMarker(marker: number): boolean {
+    return (
+      (marker >= 0xc0 && marker <= 0xc3) ||
+      (marker >= 0xc5 && marker <= 0xc7) ||
+      (marker >= 0xc9 && marker <= 0xcb) ||
+      (marker >= 0xcd && marker <= 0xcf)
+    );
+  }
+
   private static toResponse(
     letter: PrismaApplicationLetter
   ): ApplicationLetterResponse {
@@ -394,5 +620,21 @@ export class ApplicationLetterService {
       created_at: letter.createdAt?.toISOString(),
       updated_at: letter.updatedAt?.toISOString(),
     };
+  }
+
+  private static getSignatureExtension(mimeType: string): "png" | "jpg" {
+    const normalized = mimeType.toLowerCase();
+    if (normalized === "image/png") {
+      return "png";
+    }
+
+    if (normalized === "image/jpeg" || normalized === "image/jpg") {
+      return "jpg";
+    }
+
+    throw new ResponseError(
+      400,
+      "Signature must be an image with PNG or JPG format"
+    );
   }
 }

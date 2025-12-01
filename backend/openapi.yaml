@@ -499,6 +499,36 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /application-letters/signature:
+    post:
+      tags: [Application Letters]
+      summary: Upload signature image
+      description: Upload a handwritten signature image (PNG or JPG, max 1 MB) that can be referenced by application letters.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                signature:
+                  type: string
+                  format: binary
+                  description: PNG or JPG image up to 1 MB
+              required: [signature]
+      responses:
+        '201':
+          description: Signature uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignatureUploadResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /application-letters/{id}/download:
     get:
       tags: [Application Letters]
@@ -1788,6 +1818,14 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/Application'
+    SignatureUploadResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            path:
+              type: string
     ApplicationListResponse:
       type: object
       properties:
@@ -1851,6 +1889,7 @@ components:
           type: string
         signature:
           type: string
+          nullable: true
         language:
           type: string
           enum: [en, id]
@@ -1882,10 +1921,12 @@ components:
         body_paragraph: { type: string }
         attachments: { type: string }
         closing_paragraph: { type: string }
-        signature: { type: string }
+        signature:
+          type: string
+          nullable: true
         language: { type: string, enum: [en, id] }
       required:
-        [name, birth_place_date, gender, marital_status, education, phone, email, address, subject, applicant_city, application_date, receiver_title, company_name, opening_paragraph, body_paragraph, attachments, closing_paragraph, signature, language]
+        [name, birth_place_date, gender, marital_status, education, phone, email, address, subject, applicant_city, application_date, receiver_title, company_name, opening_paragraph, body_paragraph, attachments, closing_paragraph, language]
     ApplicationLetterResponse:
       type: object
       properties:
