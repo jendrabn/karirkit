@@ -630,6 +630,9 @@ paths:
     post:
       tags: [Portfolios]
       summary: Create portfolio
+      description: >
+        Submit the complete portfolio data (details, cover, media, tools) in a single JSON request.
+        Any files must be uploaded beforehand via `/uploads` and referenced here by their returned path.
       security:
         - sessionCookie: []
       requestBody:
@@ -671,6 +674,9 @@ paths:
     put:
       tags: [Portfolios]
       summary: Update portfolio
+      description: >
+        Replace the entire portfolio definition in one request. To attach images or other files,
+        first upload them to `/uploads` and send the resulting path inside the JSON payload.
       security:
         - sessionCookie: []
       parameters:
@@ -699,149 +705,6 @@ paths:
         - sessionCookie: []
       parameters:
         - $ref: '#/components/parameters/ResourceId'
-      responses:
-        '204':
-          description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /portfolios/{id}/cover:
-    post:
-      tags: [Portfolios]
-      summary: Upload portfolio cover
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                cover:
-                  type: string
-                  format: binary
-              required: [cover]
-      responses:
-        '200':
-          description: Cover uploaded
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                      cover:
-                        type: string
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /portfolios/{id}/media:
-    post:
-      tags: [Portfolios]
-      summary: Upload portfolio media
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                files:
-                  type: array
-                  items:
-                    type: string
-                    format: binary
-                captions:
-                  type: array
-                  items:
-                    type: string
-      responses:
-        '201':
-          description: Media uploaded
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/PortfolioMedia'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /portfolios/{id}/media/{mediaId}:
-    delete:
-      tags: [Portfolios]
-      summary: Delete portfolio media
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-        - name: mediaId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /portfolios/{id}/tools:
-    post:
-      tags: [Portfolios]
-      summary: Add portfolio tool
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-              required: [name]
-      responses:
-        '201':
-          description: Tool added
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /portfolios/{id}/tools/{toolId}:
-    delete:
-      tags: [Portfolios]
-      summary: Delete portfolio tool
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-        - name: toolId
-          in: path
-          required: true
-          schema:
-            type: string
       responses:
         '204':
           description: Deleted
@@ -2041,18 +1904,28 @@ components:
         year: { type: integer }
         live_url: { type: string, nullable: true }
         repo_url: { type: string, nullable: true }
-        cover: { type: string }
+        cover:
+          type: string
+          nullable: true
+          description: Path returned from `/uploads` representing the portfolio cover image. Leave null to remove the cover.
         tools:
           type: array
           items:
             type: string
+          description: Full list of tools/technologies for the portfolio item.
         medias:
           type: array
           items:
             type: object
             properties:
-              path: { type: string }
-              caption: { type: string, nullable: true }
+              path:
+                type: string
+                description: Path returned from `/uploads` for each media file.
+              caption:
+                type: string
+                nullable: true
+            required: [path]
+          description: Ordered gallery assets referencing files previously uploaded via `/uploads`.
       required:
         [title, slug, sort_description, description, role_title, project_type, industry, month, year]
     PortfolioResponse:
