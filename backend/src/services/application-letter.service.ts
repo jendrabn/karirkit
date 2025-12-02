@@ -2,7 +2,7 @@ import type {
   ApplicationLetter as PrismaApplicationLetter,
   Prisma,
 } from "../../generated/prisma/client";
-import type { Express } from "express";
+import crypto from "crypto";
 import path from "path";
 import fs from "fs/promises";
 import createReport from "docx-templates";
@@ -60,6 +60,9 @@ const SIGNATURE_UPLOAD_DIR = path.join(
   "uploads",
   "signatures"
 );
+const TEMP_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "temp");
+const SIGNATURE_PUBLIC_PREFIX = "uploads/signatures";
+const TEMP_PUBLIC_PREFIX = "uploads/temp";
 
 export class ApplicationLetterService {
   static async list(
@@ -142,7 +145,14 @@ export class ApplicationLetterService {
       ApplicationLetterValidation.PAYLOAD,
       request
     );
-    const data = ApplicationLetterService.mapPayloadToData(payload);
+    const signaturePath = await ApplicationLetterService.prepareSignatureValue(
+      userId,
+      payload.signature
+    );
+    const data = ApplicationLetterService.mapPayloadToData(
+      payload,
+      signaturePath
+    );
     const now = new Date();
 
     const letter = await prisma.applicationLetter.create({
@@ -155,29 +165,6 @@ export class ApplicationLetterService {
     });
 
     return ApplicationLetterService.toResponse(letter);
-  }
-
-  static async uploadSignature(
-    userId: string,
-    file?: Express.Multer.File
-  ): Promise<{ path: string }> {
-    if (!file) {
-      throw new ResponseError(400, "Signature image is required");
-    }
-
-    const extension = ApplicationLetterService.getSignatureExtension(
-      file.mimetype
-    );
-    await fs.mkdir(SIGNATURE_UPLOAD_DIR, { recursive: true });
-
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const fileName = `${uniqueSuffix}.${extension}`;
-    const filePath = path.join(SIGNATURE_UPLOAD_DIR, fileName);
-    await fs.writeFile(filePath, file.buffer);
-
-    const publicPath = path.posix.join("/uploads/signatures", fileName);
-
-    return { path: publicPath };
   }
 
   static async get(
@@ -198,9 +185,15 @@ export class ApplicationLetterService {
       ApplicationLetterValidation.PAYLOAD,
       request
     );
-    const data = ApplicationLetterService.mapPayloadToData(payload, {
-      signatureFallback: existing.signature,
-    });
+    const signaturePath = await ApplicationLetterService.prepareSignatureValue(
+      userId,
+      payload.signature,
+      existing.signature
+    );
+    const data = ApplicationLetterService.mapPayloadToData(
+      payload,
+      signaturePath
+    );
 
     const letter = await prisma.applicationLetter.update({
       where: { id },
@@ -293,7 +286,7 @@ export class ApplicationLetterService {
 
   private static mapPayloadToData(
     payload: ApplicationLetterPayloadInput,
-    options?: { signatureFallback?: string | null }
+    signaturePath: string
   ): ApplicationLetterMutableFields {
     return {
       name: payload.name,
@@ -315,12 +308,184 @@ export class ApplicationLetterService {
       bodyParagraph: payload.body_paragraph,
       attachments: payload.attachments,
       closingParagraph: payload.closing_paragraph,
-      signature:
-        payload.signature === undefined
-          ? options?.signatureFallback ?? ""
-          : payload.signature ?? "",
+      signature: signaturePath,
       language: payload.language,
     };
+  }
+
+  private static async prepareSignatureValue(
+    userId: string,
+    signatureInput: string | null | undefined,
+    currentSignature?: string | null
+  ): Promise<string> {
+    if (signatureInput === undefined) {
+      return currentSignature ?? "";
+    }
+
+    if (signatureInput === null) {
+      await ApplicationLetterService.deleteSignatureFile(currentSignature);
+      return "";
+    }
+
+    const trimmed = signatureInput.trim();
+    if (!trimmed) {
+      await ApplicationLetterService.deleteSignatureFile(currentSignature);
+      return "";
+    }
+
+    const normalizedExisting =
+      ApplicationLetterService.normalizeSignaturePublicPath(currentSignature);
+    const normalizedInput =
+      ApplicationLetterService.normalizeSignaturePublicPath(trimmed);
+
+    if (normalizedInput) {
+      if (normalizedExisting === normalizedInput) {
+        return normalizedInput;
+      }
+
+      await ApplicationLetterService.deleteSignatureFile(currentSignature);
+      return normalizedInput;
+    }
+
+    const promoted = await ApplicationLetterService.promoteTempSignature(
+      userId,
+      trimmed
+    );
+    await ApplicationLetterService.deleteSignatureFile(currentSignature);
+    return promoted;
+  }
+
+  private static async promoteTempSignature(
+    userId: string,
+    tempPublicPath: string
+  ): Promise<string> {
+    const resolved = ApplicationLetterService.resolveUploadFile(
+      tempPublicPath,
+      TEMP_PUBLIC_PREFIX,
+      TEMP_UPLOAD_DIR
+    );
+
+    if (!resolved) {
+      throw new ResponseError(
+        400,
+        "Signature must reference an uploaded temp file"
+      );
+    }
+
+    const extension =
+      ApplicationLetterService.getSignatureFileExtension(resolved.absolute);
+    if (!extension) {
+      throw new ResponseError(
+        400,
+        "Signature must be an image with PNG or JPG format"
+      );
+    }
+
+    await fs.mkdir(SIGNATURE_UPLOAD_DIR, { recursive: true });
+
+    const fileName = ApplicationLetterService.buildSignatureFileName(
+      userId,
+      extension
+    );
+    const destination = path.join(SIGNATURE_UPLOAD_DIR, fileName);
+
+    try {
+      await fs.rename(resolved.absolute, destination);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        throw new ResponseError(400, "Temporary signature file not found");
+      }
+      throw error;
+    }
+
+    return path.posix.join("/uploads/signatures", fileName);
+  }
+
+  private static async deleteSignatureFile(
+    signaturePath?: string | null
+  ): Promise<void> {
+    const resolved = ApplicationLetterService.resolveUploadFile(
+      signaturePath,
+      SIGNATURE_PUBLIC_PREFIX,
+      SIGNATURE_UPLOAD_DIR
+    );
+
+    if (!resolved) {
+      return;
+    }
+
+    try {
+      await fs.unlink(resolved.absolute);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw error;
+      }
+    }
+  }
+
+  private static normalizeSignaturePublicPath(
+    value?: string | null
+  ): string | null {
+    const resolved = ApplicationLetterService.resolveUploadFile(
+      value,
+      SIGNATURE_PUBLIC_PREFIX,
+      SIGNATURE_UPLOAD_DIR
+    );
+
+    return resolved?.publicPath ?? null;
+  }
+
+  private static resolveUploadFile(
+    input: string | null | undefined,
+    prefix: string,
+    directory: string
+  ): { absolute: string; relative: string; publicPath: string } | null {
+    if (!input) {
+      return null;
+    }
+
+    const trimmed = input.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    const normalizedPrefix = prefix.replace(/\\/g, "/").replace(/^\/+/, "").replace(/\/+$/, "");
+    const normalizedInput = trimmed.replace(/\\/g, "/").replace(/^\/+/, "");
+    const lowerInput = normalizedInput.toLowerCase();
+    const lowerPrefix = `${normalizedPrefix.toLowerCase()}/`;
+
+    if (!lowerInput.startsWith(lowerPrefix)) {
+      return null;
+    }
+
+    const relativeRaw = normalizedInput.slice(lowerPrefix.length);
+    if (!relativeRaw) {
+      return null;
+    }
+
+    const safeRelative = path.normalize(relativeRaw);
+    if (safeRelative.startsWith("..") || path.isAbsolute(safeRelative)) {
+      return null;
+    }
+
+    const posixRelative = safeRelative.replace(/\\/g, "/");
+
+    return {
+      absolute: path.join(directory, safeRelative),
+      relative: posixRelative,
+      publicPath: path.posix.join("/", normalizedPrefix, posixRelative),
+    };
+  }
+
+  private static buildSignatureFileName(
+    userId: string,
+    extension: string
+  ): string {
+    const safeUser = userId.replace(/[^a-zA-Z0-9]/g, "").slice(-12) || "user";
+    const sanitizedExtension = extension.startsWith(".")
+      ? extension
+      : `.${extension}`;
+    return `${Date.now()}-${safeUser}-${crypto.randomUUID()}${sanitizedExtension}`;
   }
 
   private static async renderDocx(
@@ -465,31 +630,13 @@ export class ApplicationLetterService {
   private static resolveSignatureFilePath(
     signaturePath?: string | null
   ): string | null {
-    if (!signaturePath) {
-      return null;
-    }
+    const resolved = ApplicationLetterService.resolveUploadFile(
+      signaturePath,
+      SIGNATURE_PUBLIC_PREFIX,
+      SIGNATURE_UPLOAD_DIR
+    );
 
-    const trimmed = signaturePath.trim();
-    if (!trimmed) {
-      return null;
-    }
-
-    const normalized = trimmed.replace(/\\/g, "/").replace(/^\//, "");
-    if (!normalized.toLowerCase().startsWith("uploads/signatures/")) {
-      return null;
-    }
-
-    const relativePath = normalized.slice("uploads/signatures/".length);
-    if (!relativePath) {
-      return null;
-    }
-
-    const safeRelative = path.normalize(relativePath);
-    if (safeRelative.startsWith("..") || path.isAbsolute(safeRelative)) {
-      return null;
-    }
-
-    return path.join(SIGNATURE_UPLOAD_DIR, safeRelative);
+    return resolved?.absolute ?? null;
   }
 
   private static getSignatureFileExtension(
@@ -622,19 +769,4 @@ export class ApplicationLetterService {
     };
   }
 
-  private static getSignatureExtension(mimeType: string): "png" | "jpg" {
-    const normalized = mimeType.toLowerCase();
-    if (normalized === "image/png") {
-      return "png";
-    }
-
-    if (normalized === "image/jpeg" || normalized === "image/jpg") {
-      return "jpg";
-    }
-
-    throw new ResponseError(
-      400,
-      "Signature must be an image with PNG or JPG format"
-    );
-  }
 }

@@ -8,11 +8,19 @@ import {
 } from "../middleware/rate-limit.middleware";
 import { ApplicationController } from "../controllers/application.controller";
 import { ApplicationLetterController } from "../controllers/application-letter.controller";
-import { handleSignatureUpload } from "../middleware/upload.middleware";
+import { UploadController } from "../controllers/upload.controller";
+import { handleTempUpload } from "../middleware/upload.middleware";
 
 const router = Router();
 
 router.get("/health", getHealth);
+
+router.post(
+  "/uploads",
+  authMiddleware,
+  handleTempUpload,
+  UploadController.uploadTemp
+);
 
 // Auth API
 router.post("/auth/register", AuthController.register);
@@ -59,12 +67,6 @@ router.post(
   "/application-letters",
   authMiddleware,
   ApplicationLetterController.create
-);
-router.post(
-  "/application-letters/signature",
-  authMiddleware,
-  handleSignatureUpload,
-  ApplicationLetterController.uploadSignature
 );
 router.get(
   "/application-letters/:id",

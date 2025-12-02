@@ -15,6 +15,7 @@ tags:
   - name: Portfolios
   - name: CVs
   - name: Public
+  - name: Uploads
 paths:
   /auth/register:
     post:
@@ -499,36 +500,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-  /application-letters/signature:
-    post:
-      tags: [Application Letters]
-      summary: Upload signature image
-      description: Upload a handwritten signature image (PNG or JPG, max 1 MB) that can be referenced by application letters.
-      security:
-        - sessionCookie: []
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                signature:
-                  type: string
-                  format: binary
-                  description: PNG or JPG image up to 1 MB
-              required: [signature]
-      responses:
-        '201':
-          description: Signature uploaded
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SignatureUploadResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
   /application-letters/{id}/download:
     get:
       tags: [Application Letters]
@@ -585,6 +556,36 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+  /uploads:
+    post:
+      tags: [Uploads]
+      summary: Upload temporary file
+      description: Upload any binary file to the temp folder so that it can be attached to other resources later.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File to persist inside the temp folder
+              required: [file]
+      responses:
+        '201':
+          description: File uploaded to the temp storage
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TempUploadResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /portfolios:
     get:
       tags: [Portfolios]
@@ -1818,7 +1819,7 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/Application'
-    SignatureUploadResponse:
+    TempUploadResponse:
       type: object
       properties:
         data:
@@ -1826,6 +1827,17 @@ components:
           properties:
             path:
               type: string
+              description: Relative path pointing to the stored temp file
+            original_name:
+              type: string
+              description: Original filename supplied by the client
+            size:
+              type: integer
+              format: int64
+              description: File size in bytes
+            mime_type:
+              type: string
+              description: Detected MIME type
     ApplicationListResponse:
       type: object
       properties:
