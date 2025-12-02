@@ -10,6 +10,7 @@ import { ApplicationController } from "../controllers/application.controller";
 import { ApplicationLetterController } from "../controllers/application-letter.controller";
 import { UploadController } from "../controllers/upload.controller";
 import { handleTempUpload } from "../middleware/upload.middleware";
+import { PortfolioController } from "../controllers/portfolio.controller";
 
 const router = Router();
 
@@ -93,5 +94,12 @@ router.get(
   authMiddleware,
   ApplicationLetterController.download
 );
+
+// Portfolios API
+router.get("/portfolios", authMiddleware, PortfolioController.list);
+router.post("/portfolios", authMiddleware, PortfolioController.create);
+router.get("/portfolios/:id", authMiddleware, PortfolioController.get);
+router.put("/portfolios/:id", authMiddleware, PortfolioController.update);
+router.delete("/portfolios/:id", authMiddleware, PortfolioController.delete);
 
 export default router;
