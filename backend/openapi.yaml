@@ -735,6 +735,7 @@ paths:
     get:
       tags: [CVs]
       summary: List CVs
+      description: List every CV owned by the authenticated user with optional filters and pagination.
       security:
         - sessionCookie: []
       parameters:
@@ -767,6 +768,9 @@ paths:
     post:
       tags: [CVs]
       summary: Create CV
+      description: >
+        Submit the entire CV definition (profile, sections, and optional `photo` path) in a single JSON payload.
+        The referenced `photo` and section attachments must already be uploaded via `/uploads`.
       security:
         - sessionCookie: []
       requestBody:
@@ -790,6 +794,7 @@ paths:
     get:
       tags: [CVs]
       summary: Get CV detail
+      description: Retrieve the complete CV payload for editing or viewing.
       security:
         - sessionCookie: []
       parameters:
@@ -808,6 +813,9 @@ paths:
     put:
       tags: [CVs]
       summary: Update CV
+      description: >
+        Replace the CV with a new `CvPayload`, syncing every section (educations, experiences, etc.) and the `photo` path
+        exactly as provided in the request body.
       security:
         - sessionCookie: []
       parameters:
@@ -832,6 +840,7 @@ paths:
     delete:
       tags: [CVs]
       summary: Delete CV
+      description: Permanently remove the CV and all associated sections.
       security:
         - sessionCookie: []
       parameters:
@@ -847,6 +856,7 @@ paths:
     post:
       tags: [CVs]
       summary: Duplicate CV
+      description: Create a new CV by cloning every field, section, and photo reference from the source CV.
       security:
         - sessionCookie: []
       parameters:
@@ -862,48 +872,10 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-  /cvs/{id}/photo:
-    post:
-      tags: [CVs]
-      summary: Upload CV photo
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                photo:
-                  type: string
-                  format: binary
-              required: [photo]
-      responses:
-        '200':
-          description: Photo uploaded
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                      photo:
-                        type: string
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
   /cvs/{id}/download:
     get:
       tags: [CVs]
-      summary: Download CV
+      summary: Download CV (PDF/DOCX)
       security:
         - sessionCookie: []
       parameters:
@@ -952,402 +924,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PreviewUrlResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /cvs/{id}/educations:
-    post:
-      tags: [CVs]
-      summary: Add education
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CvEducation'
-      responses:
-        '201':
-          description: Education added
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /cvs/{id}/educations/{educationId}:
-    put:
-      tags: [CVs]
-      summary: Update education
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-        - name: educationId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CvEducation'
-      responses:
-        '200':
-          description: Education updated
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    delete:
-      tags: [CVs]
-      summary: Delete education
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-        - name: educationId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /cvs/{id}/certificates:
-    post:
-      tags: [CVs]
-      summary: Add certificate
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CvCertificate'
-      responses:
-        '201':
-          description: Certificate added
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /cvs/{id}/certificates/{certificateId}:
-    put:
-      tags: [CVs]
-      summary: Update certificate
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-        - name: certificateId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CvCertificate'
-      responses:
-        '200':
-          description: Certificate updated
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    delete:
-      tags: [CVs]
-      summary: Delete certificate
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-        - name: certificateId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /cvs/{id}/experiences:
-    post:
-      tags: [CVs]
-      summary: Add experience
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CvExperience'
-      responses:
-        '201':
-          description: Experience added
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /cvs/{id}/experiences/{experienceId}:
-    put:
-      tags: [CVs]
-      summary: Update experience
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-        - name: experienceId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CvExperience'
-      responses:
-        '200':
-          description: Experience updated
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    delete:
-      tags: [CVs]
-      summary: Delete experience
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-        - name: experienceId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /cvs/{id}/skills:
-    post:
-      tags: [CVs]
-      summary: Add skill
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CvSkill'
-      responses:
-        '201':
-          description: Skill added
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /cvs/{id}/skills/{skillId}:
-    put:
-      tags: [CVs]
-      summary: Update skill
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-        - name: skillId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CvSkill'
-      responses:
-        '200':
-          description: Skill updated
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    delete:
-      tags: [CVs]
-      summary: Delete skill
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-        - name: skillId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /cvs/{id}/awards:
-    post:
-      tags: [CVs]
-      summary: Add award
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CvAward'
-      responses:
-        '201':
-          description: Award added
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /cvs/{id}/awards/{awardId}:
-    put:
-      tags: [CVs]
-      summary: Update award
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-        - name: awardId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CvAward'
-      responses:
-        '200':
-          description: Award updated
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    delete:
-      tags: [CVs]
-      summary: Delete award
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-        - name: awardId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Deleted
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /cvs/{id}/social-links:
-    post:
-      tags: [CVs]
-      summary: Add social link
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CvSocialLink'
-      responses:
-        '201':
-          description: Social link added
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /cvs/{id}/social-links/{linkId}:
-    put:
-      tags: [CVs]
-      summary: Update social link
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-        - name: linkId
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CvSocialLink'
-      responses:
-        '200':
-          description: Social link updated
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    delete:
-      tags: [CVs]
-      summary: Delete social link
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-        - name: linkId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Deleted
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -1963,34 +1539,36 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/Portfolio'
-    CvEducation:
-      type: object
-      properties:
-        degree:
-          type: string
-          enum: [highschool, associate, bachelor, master, doctorate, other]
-        school_name:
-          type: string
-        major:
-          type: string
-        start_month:
-          type: integer
-        start_year:
-          type: integer
-        end_month:
-          type: integer
-          nullable: true
-        end_year:
-          type: integer
-          nullable: true
-        is_current:
-          type: boolean
-        gpa:
-          type: number
-          nullable: true
-        description:
-          type: string
-          nullable: true
+      CvEducation:
+        type: object
+        properties:
+          degree:
+            type: string
+            enum: [highschool, associate, bachelor, master, doctorate, other]
+          school_name:
+            type: string
+          school_location:
+            type: string
+          major:
+            type: string
+          start_month:
+            type: integer
+          start_year:
+            type: integer
+          end_month:
+            type: integer
+            nullable: true
+          end_year:
+            type: integer
+            nullable: true
+          is_current:
+            type: boolean
+          gpa:
+            type: number
+            nullable: true
+          description:
+            type: string
+            nullable: true
     CvCertificate:
       type: object
       properties:
@@ -2036,7 +1614,6 @@ components:
       properties:
         platform: { type: string }
         url: { type: string }
-        icon: { type: string, nullable: true }
     Cv:
       type: object
       properties:
