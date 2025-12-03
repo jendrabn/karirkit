@@ -1539,9 +1539,9 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/Portfolio'
-      CvEducation:
-        type: object
-        properties:
+    CvEducation:
+      type: object
+      properties:
           degree:
             type: string
             enum: [highschool, associate, bachelor, master, doctorate, other]

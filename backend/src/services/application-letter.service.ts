@@ -372,8 +372,9 @@ export class ApplicationLetterService {
       );
     }
 
-    const extension =
-      ApplicationLetterService.getSignatureFileExtension(resolved.absolute);
+    const extension = ApplicationLetterService.getSignatureFileExtension(
+      resolved.absolute
+    );
     if (!extension) {
       throw new ResponseError(
         400,
@@ -449,7 +450,10 @@ export class ApplicationLetterService {
       return null;
     }
 
-    const normalizedPrefix = prefix.replace(/\\/g, "/").replace(/^\/+/, "").replace(/\/+$/, "");
+    const normalizedPrefix = prefix
+      .replace(/\\/g, "/")
+      .replace(/^\/+/, "")
+      .replace(/\/+$/, "");
     const normalizedInput = trimmed.replace(/\\/g, "/").replace(/^\/+/, "");
     const lowerInput = normalizedInput.toLowerCase();
     const lowerPrefix = `${normalizedPrefix.toLowerCase()}/`;
@@ -493,8 +497,8 @@ export class ApplicationLetterService {
   ): Promise<Buffer> {
     const templatePath = path.join(
       process.cwd(),
-      "application_letter_templates",
-      "template_001.docx"
+      "word_templates",
+      "application_letter_001.docx"
     );
     const templateBinary = await fs.readFile(templatePath);
     const additionalJsContext =
@@ -768,5 +772,4 @@ export class ApplicationLetterService {
       updated_at: letter.updatedAt?.toISOString(),
     };
   }
-
 }

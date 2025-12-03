@@ -11,6 +11,7 @@ import { ApplicationLetterController } from "../controllers/application-letter.c
 import { UploadController } from "../controllers/upload.controller";
 import { handleTempUpload } from "../middleware/upload.middleware";
 import { PortfolioController } from "../controllers/portfolio.controller";
+import { CvController } from "../controllers/cv.controller";
 
 const router = Router();
 
@@ -101,5 +102,15 @@ router.post("/portfolios", authMiddleware, PortfolioController.create);
 router.get("/portfolios/:id", authMiddleware, PortfolioController.get);
 router.put("/portfolios/:id", authMiddleware, PortfolioController.update);
 router.delete("/portfolios/:id", authMiddleware, PortfolioController.delete);
+
+// CVs API
+router.get("/cvs", authMiddleware, CvController.list);
+router.post("/cvs", authMiddleware, CvController.create);
+router.get("/cvs/:id", authMiddleware, CvController.get);
+router.put("/cvs/:id", authMiddleware, CvController.update);
+router.delete("/cvs/:id", authMiddleware, CvController.delete);
+router.post("/cvs/:id/duplicate", authMiddleware, CvController.duplicate);
+router.get("/cvs/:id/download", authMiddleware, CvController.download);
+router.get("/cvs/:id/preview", authMiddleware, CvController.preview);
 
 export default router;

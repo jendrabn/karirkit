@@ -302,6 +302,7 @@ export interface CvEducation {
     | "doctorate"
     | "other";
   school_name?: string;
+  school_location?: string;
   major?: string;
   start_month?: number;
   start_year?: number;
@@ -353,7 +354,6 @@ export interface CvAward {
 export interface CvSocialLink {
   platform?: string;
   url?: string;
-  icon?: string | null;
 }
 
 export interface Cv {

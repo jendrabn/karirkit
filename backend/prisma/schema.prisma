@@ -243,6 +243,7 @@ model CvEducation {
   cvId        String    @map("cv_id") @db.VarChar(255)
   degree      Degree
   schoolName  String    @map("school_name") @db.VarChar(255)
+  schoolLocation String @map("school_location") @db.VarChar(255)
   major       String    @db.VarChar(255)
   startMonth  Int       @map("start_month") @db.TinyInt
   startYear   Int       @map("start_year") @db.Year
@@ -345,7 +346,6 @@ model CvSocialLink {
   cvId      String    @map("cv_id") @db.VarChar(255)
   platform  String    @db.VarChar(255)
   url       String    @db.VarChar(255)
-  icon      String?   @db.VarChar(255)
   createdAt DateTime? @map("created_at") @db.Timestamp(0)
   updatedAt DateTime? @map("updated_at") @db.Timestamp(0)
   deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
