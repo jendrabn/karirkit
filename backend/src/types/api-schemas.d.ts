@@ -293,6 +293,19 @@ export interface PublicPortfolioResponse {
   };
 }
 
+export interface PublicPortfolioDetailResponse {
+  data?: {
+    user?: {
+      id?: string;
+      name?: string;
+      username?: string;
+      avatar?: string | null;
+      headline?: string | null;
+    };
+    portfolio?: Portfolio;
+  };
+}
+
 export interface CvEducation {
   degree?:
     | "highschool"

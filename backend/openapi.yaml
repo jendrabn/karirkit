@@ -731,6 +731,30 @@ paths:
                 $ref: '#/components/schemas/PublicPortfolioResponse'
         '404':
           $ref: '#/components/responses/NotFound'
+  /public/portfolios/@{username}/{id}:
+    get:
+      tags: [Public]
+      summary: Public portfolio detail by username and id
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Public portfolio detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicPortfolioDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /cvs:
     get:
       tags: [CVs]
@@ -1539,6 +1563,22 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/Portfolio'
+    PublicPortfolioDetailResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id: { type: string }
+                name: { type: string }
+                username: { type: string }
+                avatar: { type: string, nullable: true }
+                headline: { type: string, nullable: true }
+            portfolio:
+              $ref: '#/components/schemas/Portfolio'
     CvEducation:
       type: object
       properties:

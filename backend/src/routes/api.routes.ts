@@ -12,6 +12,7 @@ import { UploadController } from "../controllers/upload.controller";
 import { handleTempUpload } from "../middleware/upload.middleware";
 import { PortfolioController } from "../controllers/portfolio.controller";
 import { CvController } from "../controllers/cv.controller";
+import { PublicController } from "../controllers/public.controller";
 
 const router = Router();
 
@@ -22,6 +23,16 @@ router.post(
   authMiddleware,
   handleTempUpload,
   UploadController.uploadTemp
+);
+
+// Public API
+router.get(
+  "/public/portfolios/@:username",
+  PublicController.getPortfolioListing
+);
+router.get(
+  "/public/portfolios/@:username/:id",
+  PublicController.getPortfolioDetail
 );
 
 // Auth API
