@@ -4,7 +4,7 @@ import {
   ApplicationStatus,
   JobType,
   WorkSystem,
-} from "../../generated/prisma/client";
+} from "../generated/prisma/client";
 
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 

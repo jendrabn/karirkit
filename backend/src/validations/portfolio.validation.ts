@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ProjectType } from "../../generated/prisma/client";
+import { ProjectType } from "../generated/prisma/client";
 
 const nullableString = (max = 255) =>
   z

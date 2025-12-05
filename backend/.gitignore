@@ -61,6 +61,7 @@ typings/
 .next
 
 /generated/prisma
+/src/generated
 
 dist/
 

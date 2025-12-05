@@ -3,7 +3,7 @@ import {
   Gender,
   Language,
   MaritalStatus,
-} from "../../generated/prisma/client";
+} from "../generated/prisma/client";
 
 const stringField = (max = 255) => z.string().trim().min(1).max(max);
 

@@ -1,7 +1,7 @@
 import type {
   ApplicationLetter as PrismaApplicationLetter,
   Prisma,
-} from "../../generated/prisma/client";
+} from "../generated/prisma/client";
 import crypto from "crypto";
 import path from "path";
 import fs from "fs/promises";

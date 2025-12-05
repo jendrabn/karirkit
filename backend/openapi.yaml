@@ -533,29 +533,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-  /application-letters/{id}/preview:
-    get:
-      tags: [Application Letters]
-      summary: Preview application letter PDF
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-      responses:
-        '200':
-          description: Preview PDF
-          content:
-            application/pdf:
-              schema:
-                type: string
-                format: binary
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PreviewUrlResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
   /uploads:
     post:
       tags: [Uploads]
@@ -925,29 +902,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DownloadUrlResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  /cvs/{id}/preview:
-    get:
-      tags: [CVs]
-      summary: Preview CV PDF
-      security:
-        - sessionCookie: []
-      parameters:
-        - $ref: '#/components/parameters/ResourceId'
-      responses:
-        '200':
-          description: Preview CV
-          content:
-            application/pdf:
-              schema:
-                type: string
-                format: binary
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PreviewUrlResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':

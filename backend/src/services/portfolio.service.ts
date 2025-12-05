@@ -3,7 +3,7 @@ import type {
   PortfolioMedia as PrismaPortfolioMedia,
   PortfolioTool as PrismaPortfolioTool,
   Prisma,
-} from "../../generated/prisma/client";
+} from "../generated/prisma/client";
 import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";

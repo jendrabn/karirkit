@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Degree, JobType, SkillLevel } from "../../generated/prisma/client";
+import { Degree, JobType, SkillLevel } from "../generated/prisma/client";
 
 const trimmedString = (max = 255) =>
   z

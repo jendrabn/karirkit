@@ -1,4 +1,4 @@
-import type { User } from "../../generated/prisma/client";
+import type { User } from "../generated/prisma/client";
 import type { SafeUser } from "../services/auth.service";
 
 interface RateLimitState {

@@ -3,7 +3,7 @@ import type {
   PortfolioMedia as PrismaPortfolioMedia,
   PortfolioTool as PrismaPortfolioTool,
   Prisma,
-} from "../../generated/prisma/client";
+} from "../generated/prisma/client";
 import { prisma } from "../config/prisma.config";
 import type { Portfolio as PortfolioSchema } from "../types/api-schemas";
 import { ResponseError } from "../utils/response-error.util";

@@ -1,7 +1,7 @@
 import type {
   Application as PrismaApplication,
   Prisma,
-} from "../../generated/prisma/client";
+} from "../generated/prisma/client";
 import type {
   Application as ApplicationResponse,
   Pagination,

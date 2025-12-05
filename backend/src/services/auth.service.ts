@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import type { User } from "../../generated/prisma/client";
+import type { User } from "../generated/prisma/client";
 import bcrypt from "bcrypt";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import env from "../config/env.config";

@@ -7,7 +7,7 @@ import type {
   CvSkill as PrismaCvSkill,
   CvSocialLink as PrismaCvSocialLink,
   Prisma,
-} from "../../generated/prisma/client";
+} from "../generated/prisma/client";
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
