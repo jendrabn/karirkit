@@ -369,6 +369,24 @@ export interface CvSocialLink {
   url?: string;
 }
 
+export interface CvOrganization {
+  organization_name?: string;
+  role_title?: string;
+  organization_type?:
+    | "student"
+    | "community"
+    | "professional"
+    | "volunteer"
+    | "other";
+  location?: string;
+  start_month?: number;
+  start_year?: number;
+  end_month?: number | null;
+  end_year?: number | null;
+  is_current?: boolean;
+  description?: string | null;
+}
+
 export interface Cv {
   id?: string;
   user_id?: string;
@@ -387,6 +405,7 @@ export interface Cv {
   skills?: CvSkill[];
   awards?: CvAward[];
   social_links?: CvSocialLink[];
+  organizations?: CvOrganization[];
 }
 
 export interface CvPayload {
@@ -403,6 +422,7 @@ export interface CvPayload {
   skills?: CvSkill[];
   awards?: CvAward[];
   social_links?: CvSocialLink[];
+  organizations?: CvOrganization[];
 }
 
 export interface CvResponse {

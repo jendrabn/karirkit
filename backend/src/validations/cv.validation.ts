@@ -1,12 +1,12 @@
 import { z } from "zod";
-import { Degree, JobType, SkillLevel } from "../generated/prisma/client";
+import {
+  Degree,
+  JobType,
+  SkillLevel,
+  OrganizationType,
+} from "../generated/prisma/client";
 
-const trimmedString = (max = 255) =>
-  z
-    .string()
-    .trim()
-    .min(1)
-    .max(max);
+const trimmedString = (max = 255) => z.string().trim().min(1).max(max);
 
 const optionalTrimmedString = (max = 255) => trimmedString(max).optional();
 
@@ -73,6 +73,19 @@ const socialLinkSchema = z.object({
   url: trimmedString(2000),
 });
 
+const organizationSchema = z.object({
+  organization_name: trimmedString(),
+  role_title: trimmedString(),
+  organization_type: z.nativeEnum(OrganizationType),
+  location: trimmedString(),
+  start_month: monthSchema,
+  start_year: yearSchema,
+  end_month: monthSchema.nullable().optional(),
+  end_year: yearSchema.nullable().optional(),
+  is_current: z.boolean(),
+  description: nullableTrimmedString(2000),
+});
+
 const payloadSchema = z.object({
   name: trimmedString(),
   headline: trimmedString(),
@@ -87,6 +100,7 @@ const payloadSchema = z.object({
   skills: z.array(skillSchema).optional(),
   awards: z.array(awardSchema).optional(),
   social_links: z.array(socialLinkSchema).optional(),
+  organizations: z.array(organizationSchema).optional(),
 });
 
 const listQuerySchema = z.object({
@@ -112,3 +126,4 @@ export type CvExperiencePayloadInput = z.infer<typeof experienceSchema>;
 export type CvSkillPayloadInput = z.infer<typeof skillSchema>;
 export type CvAwardPayloadInput = z.infer<typeof awardSchema>;
 export type CvSocialLinkPayloadInput = z.infer<typeof socialLinkSchema>;
+export type CvOrganizationPayloadInput = z.infer<typeof organizationSchema>;

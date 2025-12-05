@@ -6,6 +6,7 @@ import type {
   CvExperience as PrismaCvExperience,
   CvSkill as PrismaCvSkill,
   CvSocialLink as PrismaCvSocialLink,
+  CvOrganization as PrismaCvOrganization,
   Prisma,
 } from "../generated/prisma/client";
 import fs from "fs/promises";
@@ -24,6 +25,7 @@ import {
   type CvEducationPayloadInput,
   type CvExperiencePayloadInput,
   type CvListQueryInput,
+  type CvOrganizationPayloadInput,
   type CvPayloadInput,
   type CvSkillPayloadInput,
   type CvSocialLinkPayloadInput,
@@ -42,6 +44,7 @@ type CvWithRelations = PrismaCv & {
   skills: PrismaCvSkill[];
   awards: PrismaCvAward[];
   socialLinks: PrismaCvSocialLink[];
+  organizations: PrismaCvOrganization[];
 };
 
 type PhotoChange = {
@@ -90,6 +93,9 @@ const relationInclude = {
   },
   socialLinks: {
     orderBy: [{ createdAt: "asc" as const }],
+  },
+  organizations: {
+    orderBy: [{ startYear: "desc" as const }, { createdAt: "desc" as const }],
   },
 } satisfies Prisma.CvInclude;
 
@@ -222,6 +228,16 @@ export class CvService {
                   })),
                 }
               : undefined,
+          organizations:
+            payload.organizations && payload.organizations.length
+              ? {
+                  create: payload.organizations.map((record) => ({
+                    ...CvService.mapOrganizationCreate(record),
+                    createdAt: now,
+                    updatedAt: now,
+                  })),
+                }
+              : undefined,
         },
         include: relationInclude,
       });
@@ -319,6 +335,18 @@ export class CvService {
           await tx.cvSocialLink.createMany({
             data: payload.social_links.map((record) => ({
               ...CvService.mapSocialLinkCreate(record),
+              cvId: id,
+              createdAt: now,
+              updatedAt: now,
+            })),
+          });
+        }
+
+        await tx.cvOrganization.deleteMany({ where: { cvId: id } });
+        if (payload.organizations?.length) {
+          await tx.cvOrganization.createMany({
+            data: payload.organizations.map((record) => ({
+              ...CvService.mapOrganizationCreate(record),
               cvId: id,
               createdAt: now,
               updatedAt: now,
@@ -432,6 +460,20 @@ export class CvService {
           create: source.socialLinks.map((record) => ({
             platform: record.platform,
             url: record.url,
+          })),
+        },
+        organizations: {
+          create: source.organizations.map((record) => ({
+            organizationName: record.organizationName,
+            roleTitle: record.roleTitle,
+            organizationType: record.organizationType,
+            location: record.location,
+            startMonth: record.startMonth,
+            startYear: record.startYear,
+            endMonth: record.endMonth,
+            endYear: record.endYear,
+            isCurrent: record.isCurrent,
+            description: record.description,
           })),
         },
       },
@@ -559,6 +601,23 @@ export class CvService {
     return {
       platform: record.platform,
       url: record.url,
+    };
+  }
+
+  private static mapOrganizationCreate(
+    record: CvOrganizationPayloadInput
+  ): Prisma.CvOrganizationCreateWithoutCvInput {
+    return {
+      organizationName: record.organization_name,
+      roleTitle: record.role_title,
+      organizationType: record.organization_type,
+      location: record.location,
+      startMonth: record.start_month,
+      startYear: record.start_year,
+      endMonth: record.end_month ?? null,
+      endYear: record.end_year ?? null,
+      isCurrent: record.is_current,
+      description: record.description ?? null,
     };
   }
 
@@ -758,7 +817,9 @@ export class CvService {
   }
 
   private static async renderDocx(cv: CvWithRelations): Promise<Buffer> {
-    const templatePath = cv.photo ? CV_TEMPLATE_WITH_PHOTO_PATH : CV_TEMPLATE_PATH;
+    const templatePath = cv.photo
+      ? CV_TEMPLATE_WITH_PHOTO_PATH
+      : CV_TEMPLATE_PATH;
     const templateBinary = await fs.readFile(templatePath);
     const context = CvService.buildTemplateContext(cv);
     const additionalJsContext = cv.photo
@@ -840,6 +901,18 @@ export class CvService {
         platform: record.platform,
         url: record.url,
         label: CvService.buildSocialLinkLabel(record.url),
+      })),
+      organizations: cv.organizations.map((record) => ({
+        organization_name: record.organizationName,
+        role_title: record.roleTitle,
+        organization_type: record.organizationType,
+        location: record.location,
+        start_month: CvService.formatMonth(record.startMonth),
+        start_year: record.startYear,
+        end_month: CvService.formatMonth(record.endMonth),
+        end_year: record.endYear,
+        is_current: record.isCurrent,
+        description: record.description,
       })),
     };
   }
@@ -1095,6 +1168,20 @@ export class CvService {
         cv_id: record.cvId,
         platform: record.platform,
         url: record.url,
+      })),
+      organizations: cv.organizations.map((record) => ({
+        id: record.id,
+        cv_id: record.cvId,
+        organization_name: record.organizationName,
+        role_title: record.roleTitle,
+        organization_type: record.organizationType,
+        location: record.location,
+        start_month: record.startMonth,
+        start_year: record.startYear,
+        end_month: record.endMonth ?? null,
+        end_year: record.endYear ?? null,
+        is_current: record.isCurrent,
+        description: record.description ?? null,
       })),
     };
   }

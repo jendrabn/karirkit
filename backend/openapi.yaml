@@ -1608,6 +1608,21 @@ components:
       properties:
         platform: { type: string }
         url: { type: string }
+    CvOrganization:
+      type: object
+      properties:
+        organization_name: { type: string }
+        role_title: { type: string }
+        organization_type:
+          type: string
+          enum: [student, community, professional, volunteer, other]
+        location: { type: string }
+        start_month: { type: integer }
+        start_year: { type: integer }
+        end_month: { type: integer, nullable: true }
+        end_year: { type: integer, nullable: true }
+        is_current: { type: boolean }
+        description: { type: string, nullable: true }
     Cv:
       type: object
       properties:
@@ -1640,6 +1655,9 @@ components:
         social_links:
           type: array
           items: { $ref: '#/components/schemas/CvSocialLink' }
+        organizations:
+          type: array
+          items: { $ref: '#/components/schemas/CvOrganization' }
     CvPayload:
       type: object
       properties:
@@ -1668,6 +1686,9 @@ components:
         social_links:
           type: array
           items: { $ref: '#/components/schemas/CvSocialLink' }
+        organizations:
+          type: array
+          items: { $ref: '#/components/schemas/CvOrganization' }
       required: [name, headline, email, phone, address, about]
     CvResponse:
       type: object

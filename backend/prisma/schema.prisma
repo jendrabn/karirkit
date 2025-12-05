@@ -95,6 +95,14 @@ enum Language {
   id
 }
 
+enum OrganizationType {
+  student
+  community
+  professional
+  volunteer
+  other
+}
+
 model User {
   id        String    @id @default(uuid()) @db.VarChar(255)
   name      String    @db.VarChar(255)
@@ -131,13 +139,14 @@ model Cv {
   updatedAt DateTime? @map("updated_at") @db.Timestamp(0)
   deletedAt DateTime? @map("deleted_at") @db.Timestamp(0)
 
-  user         User            @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  educations   CvEducation[]
-  certificates CvCertificate[]
-  experiences  CvExperience[]
-  skills       CvSkill[]
-  awards       CvAward[]
-  socialLinks  CvSocialLink[]
+  user          User             @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  educations    CvEducation[]
+  certificates  CvCertificate[]
+  experiences   CvExperience[]
+  skills        CvSkill[]
+  awards        CvAward[]
+  socialLinks   CvSocialLink[]
+  organizations CvOrganization[]
 
   @@index([userId], map: "idx_cvs_user_id")
   @@map("cvs")
@@ -239,22 +248,22 @@ model ApplicationLetter {
 }
 
 model CvEducation {
-  id          String    @id @default(uuid()) @db.VarChar(255)
-  cvId        String    @map("cv_id") @db.VarChar(255)
-  degree      Degree
-  schoolName  String    @map("school_name") @db.VarChar(255)
-  schoolLocation String @map("school_location") @db.VarChar(255)
-  major       String    @db.VarChar(255)
-  startMonth  Int       @map("start_month") @db.TinyInt
-  startYear   Int       @map("start_year") @db.Year
-  endMonth    Int?      @map("end_month") @db.TinyInt
-  endYear     Int?      @map("end_year") @db.Year
-  isCurrent   Boolean   @default(false) @map("is_current")
-  gpa         Float?    @db.Float
-  description String?   @db.Text
-  createdAt   DateTime? @map("created_at") @db.Timestamp(0)
-  updatedAt   DateTime? @map("updated_at") @db.Timestamp(0)
-  deletedAt   DateTime? @map("deleted_at") @db.Timestamp(0)
+  id             String    @id @default(uuid()) @db.VarChar(255)
+  cvId           String    @map("cv_id") @db.VarChar(255)
+  degree         Degree
+  schoolName     String    @map("school_name") @db.VarChar(255)
+  schoolLocation String    @map("school_location") @db.VarChar(255)
+  major          String    @db.VarChar(255)
+  startMonth     Int       @map("start_month") @db.TinyInt
+  startYear      Int       @map("start_year") @db.Year
+  endMonth       Int?      @map("end_month") @db.TinyInt
+  endYear        Int?      @map("end_year") @db.Year
+  isCurrent      Boolean   @default(false) @map("is_current")
+  gpa            Float?    @db.Float
+  description    String?   @db.Text
+  createdAt      DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt      DateTime? @map("updated_at") @db.Timestamp(0)
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamp(0)
 
   cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
@@ -354,6 +363,29 @@ model CvSocialLink {
 
   @@index([cvId], map: "idx_cv_social_links_cv_id")
   @@map("cv_social_links")
+}
+
+model CvOrganization {
+  id               String           @id @default(uuid()) @db.VarChar(255)
+  cvId             String           @map("cv_id") @db.VarChar(255)
+  organizationName String           @map("organization_name") @db.VarChar(255)
+  roleTitle        String           @map("role_title") @db.VarChar(255)
+  organizationType OrganizationType @map("organization_type")
+  location         String           @db.VarChar(255)
+  startMonth       Int              @map("start_month") @db.TinyInt
+  startYear        Int              @map("start_year") @db.Year
+  endMonth         Int?             @map("end_month") @db.TinyInt
+  endYear          Int?             @map("end_year") @db.Year
+  isCurrent        Boolean          @default(false) @map("is_current")
+  description      String?          @db.Text
+  createdAt        DateTime?        @map("created_at") @db.Timestamp(0)
+  updatedAt        DateTime?        @map("updated_at") @db.Timestamp(0)
+  deletedAt        DateTime?        @map("deleted_at") @db.Timestamp(0)
+
+  cv Cv @relation(fields: [cvId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([cvId], map: "idx_cv_organizations_cv_id")
+  @@map("cv_organizations")
 }
 
 model PortfolioMedia {
